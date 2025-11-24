@@ -13,32 +13,34 @@ namespace Tanks.Complete
         public GameObject m_ExplosionPrefab;                // A prefab that will be instantiated in Awake, then used whenever the tank dies.
         [HideInInspector] public bool m_HasShield;          // Has the tank picked up a shield power up?
         
-        
         private AudioSource m_ExplosionAudio;               // The audio source to play when the tank explodes.
-        private ParticleSystem m_ExplosionParticles;        // The particle system the will play when the tank is destroyed.
-        private float m_CurrentHealth;                      // How much health the tank currently has.
+        private ParticleSystem m_ExplosionParticles;        // The particle system that will play when the tank is destroyed.
+        public float m_CurrentHealth;                      // How much health the tank currently has.
         private bool m_Dead;                                // Has the tank been reduced beyond zero health yet?
         private float m_ShieldValue;                        // Percentage of reduced damage when the tank has a shield.
         private bool m_IsInvincible;                        // Is the tank invincible in this moment?
 
-        private void Awake ()
+        private void Awake()
         {
             // Instantiate the explosion prefab and get a reference to the particle system on it.
-            m_ExplosionParticles = Instantiate (m_ExplosionPrefab).GetComponent<ParticleSystem> ();
+            m_ExplosionParticles = Instantiate(m_ExplosionPrefab).GetComponent<ParticleSystem>();
 
             // Get a reference to the audio source on the instantiated prefab.
-            m_ExplosionAudio = m_ExplosionParticles.GetComponent<AudioSource> ();
+            m_ExplosionAudio = m_ExplosionParticles.GetComponent<AudioSource>();
 
             // Disable the prefab so it can be activated when it's required.
-            m_ExplosionParticles.gameObject.SetActive (false);
-            
+            m_ExplosionParticles.gameObject.SetActive(false);
+
             // Set the slider max value to the max health the tank can have
             m_Slider.maxValue = m_StartingHealth;
+
+            // Load health from PlayerPrefs if exists
+            LoadHealth();
         }
 
         private void OnDestroy()
         {
-            if(m_ExplosionParticles != null)
+            if (m_ExplosionParticles != null)
                 Destroy(m_ExplosionParticles.gameObject);
         }
 
@@ -55,8 +57,7 @@ namespace Tanks.Complete
             SetHealthUI();
         }
 
-
-        public void TakeDamage (float amount)
+        public void TakeDamage(float amount)
         {
             // Check if the tank is not invincible
             if (!m_IsInvincible)
@@ -65,16 +66,15 @@ namespace Tanks.Complete
                 m_CurrentHealth -= amount * (1 - m_ShieldValue);
 
                 // Change the UI elements appropriately.
-                SetHealthUI ();
+                SetHealthUI();
 
                 // If the current health is at or below zero and it has not yet been registered, call OnDeath.
                 if (m_CurrentHealth <= 0f && !m_Dead)
                 {
-                    OnDeath ();
+                    OnDeath();
                 }
             }
         }
-
 
         public void IncreaseHealth(float amount)
         {
@@ -94,8 +94,7 @@ namespace Tanks.Complete
             SetHealthUI();
         }
 
-
-        public void ToggleShield (float shieldAmount)
+        public void ToggleShield(float shieldAmount)
         {
             // Inverts the value of has shield.
             m_HasShield = !m_HasShield;
@@ -116,34 +115,54 @@ namespace Tanks.Complete
             m_IsInvincible = !m_IsInvincible;
         }
 
-
-        private void SetHealthUI ()
+        private void SetHealthUI()
         {
             // Set the slider's value appropriately.
             m_Slider.value = m_CurrentHealth;
 
-            // Interpolate the color of the bar between the choosen colours based on the current percentage of the starting health.
-            m_FillImage.color = Color.Lerp (m_ZeroHealthColor, m_FullHealthColor, m_CurrentHealth / m_StartingHealth);
+            // Interpolate the color of the bar between the chosen colors based on the current percentage of the starting health.
+            m_FillImage.color = Color.Lerp(m_ZeroHealthColor, m_FullHealthColor, m_CurrentHealth / m_StartingHealth);
         }
 
-
-        private void OnDeath ()
+        private void OnDeath()
         {
             // Set the flag so that this function is only called once.
             m_Dead = true;
 
             // Move the instantiated explosion prefab to the tank's position and turn it on.
             m_ExplosionParticles.transform.position = transform.position;
-            m_ExplosionParticles.gameObject.SetActive (true);
+            m_ExplosionParticles.gameObject.SetActive(true);
 
             // Play the particle system of the tank exploding.
-            m_ExplosionParticles.Play ();
+            m_ExplosionParticles.Play();
 
             // Play the tank explosion sound effect.
             m_ExplosionAudio.Play();
 
             // Turn the tank off.
-            gameObject.SetActive (false);
+            gameObject.SetActive(false);
+        }
+
+        // Save the current health to PlayerPrefs
+        public void SaveHealth()
+        {
+            PlayerPrefs.SetFloat("TankHealth", m_CurrentHealth);
+            PlayerPrefs.Save();
+            Debug.Log("Health Saved: " + m_CurrentHealth);
+        }
+
+        // Load the saved health from PlayerPrefs
+        public void LoadHealth()
+        {
+            if (PlayerPrefs.HasKey("TankHealth"))
+            {
+                m_CurrentHealth = PlayerPrefs.GetFloat("TankHealth");
+                // Ensure health is not greater than max health
+                if (m_CurrentHealth > m_StartingHealth)
+                    m_CurrentHealth = m_StartingHealth;
+                SetHealthUI();
+                Debug.Log("Health Loaded: " + m_CurrentHealth);
+            }
         }
     }
 }

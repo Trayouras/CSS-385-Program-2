@@ -12,7 +12,7 @@ namespace Tanks.Complete
     /// </summary>
     public class TankAI : MonoBehaviour
     {
-        // Possible state of the Computer controlled tank : either seeking itsd target or fleeing from it
+        // Possible state of the Computer controlled tank : either seeking its target or fleeing from it
         enum State
         {
             Seek,
@@ -142,6 +142,15 @@ namespace Tanks.Complete
                     // this is a destroyed or deactivated tank, this is not a valid target
                     if(tank == null || !tank.activeInHierarchy)
                         continue;
+		
+		// Get the TankMovement component to check if it's AI or player-controlled
+		var movement = tank.GetComponent<TankMovement>();
+		if (movement == null)
+ 		   continue;
+
+		// Only target player-controlled tanks
+		if (movement.m_IsComputerControlled)
+		    continue;
 
                     paths[i] = new NavMeshPath();
 
