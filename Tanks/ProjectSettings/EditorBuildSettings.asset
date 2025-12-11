@@ -12,5 +12,6 @@ EditorBuildSettings:
     path: Assets/_Tanks/Scenes/Main.unity
     guid: 4e42a30d88ad22c498e9af3a79fef5de
   m_configObjects:
+    com.unity.input.settings: {fileID: 11400000, guid: a3b05f1f350d0294883d6dcaf4b83b5e, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 7fb6c1c790fa04865b379a6e8ccd7e9c, type: 3}
   m_UseUCBPForAssetBundles: 0

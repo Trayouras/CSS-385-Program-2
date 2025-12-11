@@ -20,6 +20,8 @@ namespace Tanks.Complete
         private float m_ShieldValue;                        // Percentage of reduced damage when the tank has a shield.
         private bool m_IsInvincible;                        // Is the tank invincible in this moment?
 
+        public Slider m_WaveSlider;
+
         private void Awake()
         {
             // Instantiate the explosion prefab and get a reference to the particle system on it.
@@ -138,6 +140,9 @@ namespace Tanks.Complete
 
             // Play the tank explosion sound effect.
             m_ExplosionAudio.Play();
+
+            if (m_WaveSlider != null)
+                    m_WaveSlider.value -= 1;
 
             // Turn the tank off.
             gameObject.SetActive(false);

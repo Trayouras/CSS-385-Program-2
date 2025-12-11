@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using System.Collections;
+
 
 namespace Tanks.Complete
 {
@@ -113,39 +115,41 @@ namespace Tanks.Complete
         {
             if (m_IsCharging)
             {
-                Fire();
+                StartCoroutine(Fire ());
+                //Firer ();
                 m_IsCharging = false;
             }
         }
 
-        void ComputerUpdate()
-        {
-            // The slider should have a default value of the minimum launch force.
-            m_AimSlider.value = m_BaseMinLaunchForce;
-
-            // If the max force has been exceeded and the shell hasn't yet been launched...
-            if (m_CurrentLaunchForce >= m_MaxLaunchForce && !m_Fired)
-            {
-                // ... use the max force and launch the shell.
-                m_CurrentLaunchForce = m_MaxLaunchForce;
-                Fire ();
-            }
-            // Otherwise, if the fire button is being held and the shell hasn't been launched yet...
-            else if (m_IsCharging && !m_Fired)
-            {
-                // Increment the launch force and update the slider.
-                m_CurrentLaunchForce += m_ChargeSpeed * Time.deltaTime;
-
-                m_AimSlider.value = m_CurrentLaunchForce;
-            }
-            // Otherwise, if the fire button is released and the shell hasn't been launched yet...
-            else if (fireAction.WasReleasedThisFrame() && !m_Fired)
-            {
-                // ... launch the shell.
-                Fire ();
-                m_IsCharging = false;
-            }
-        }
+//        void ComputerUpdate()
+//        {
+//            // The slider should have a default value of the minimum launch force.
+//            m_AimSlider.value = m_BaseMinLaunchForce;
+//
+//            // If the max force has been exceeded and the shell hasn't yet been launched...
+//            if (m_CurrentLaunchForce >= m_MaxLaunchForce && !m_Fired)
+//            {
+//                // ... use the max force and launch the shell.
+//                m_CurrentLaunchForce = m_MaxLaunchForce;
+//                Fire ();
+//
+//            }
+//            // Otherwise, if the fire button is being held and the shell hasn't been launched yet...
+//            else if (m_IsCharging && !m_Fired)
+//            {
+//                // Increment the launch force and update the slider.
+//                m_CurrentLaunchForce += m_ChargeSpeed * Time.deltaTime;
+//
+//                m_AimSlider.value = m_CurrentLaunchForce;
+//            }
+//            // Otherwise, if the fire button is released and the shell hasn't been launched yet...
+//            else if (fireAction.WasReleasedThisFrame() && !m_Fired)
+//            {
+//                // ... launch the shell.
+//                Fire ();
+//                m_IsCharging = false;
+//            }
+//        }
         
         void HumanUpdate()
         {
@@ -163,7 +167,7 @@ namespace Tanks.Complete
             {
                 // ... use the max force and launch the shell.
                 m_CurrentLaunchForce = m_MaxLaunchForce;
-                Fire ();
+                StartCoroutine(Fire ());
             }
             // Otherwise, if the fire button has just started being pressed...
             else if (m_ShotCooldownTimer <= 0 && fireAction.WasPressedThisFrame())
@@ -188,12 +192,59 @@ namespace Tanks.Complete
             else if (fireAction.WasReleasedThisFrame() && !m_Fired)
             {
                 // ... launch the shell.
-                Fire ();
+                StartCoroutine(Fire ());
             }
         }
 
+        IEnumerator Fire ()
+                {
+                    // Set the fired flag so only Fire is only called once.
+                    m_Fired = true;
 
-        private void Fire ()
+                    // Create an instance of the shell and store a reference to it's rigidbody.
+                    Rigidbody shellInstance =
+                        Instantiate (m_Shell, m_FireTransform.position, m_FireTransform.rotation) as Rigidbody;
+
+                    // Set the shell's velocity to the launch force in the fire position's forward direction.
+                    shellInstance.linearVelocity = m_CurrentLaunchForce * m_FireTransform.forward;
+
+                    ShellExplosion explosionData = shellInstance.GetComponent<ShellExplosion>();
+                    explosionData.m_ExplosionForce = m_ExplosionForce;
+                    explosionData.m_ExplosionRadius = m_ExplosionRadius;
+                    explosionData.m_MaxDamage = m_MaxDamage;
+
+                    // Increase the damage if extra damage PowerUp is active
+                    if (m_HasSpecialShell)
+                    {
+                        explosionData.m_MaxDamage *= m_SpecialShellMultiplier;
+                        // Reset the default values after increasing the damage of the fired shell
+                        m_HasSpecialShell = false;
+                        m_SpecialShellMultiplier = 1f;
+
+                        PowerUpDetector powerUpDetector = GetComponent<PowerUpDetector>();
+                        if (powerUpDetector != null)
+                            powerUpDetector.m_HasActivePowerUp = false;
+
+                        PowerUpHUD powerUpHUD = GetComponentInChildren<PowerUpHUD>();
+                        if (powerUpHUD != null)
+                            powerUpHUD.DisableActiveHUD();
+                    }
+
+                    // Change the clip to the firing clip and play it.
+                    m_ShootingAudio.clip = m_FireClip;
+                    m_ShootingAudio.Play ();
+
+                    // Reset the launch force.  This is a precaution in case of missing button events.
+                    m_CurrentLaunchForce = m_MinLaunchForce;
+
+                    m_ShotCooldownTimer = m_ShotCooldown;
+
+                    yield return new WaitForSeconds(0);
+
+                }
+
+
+        private void Firer ()
         {
             // Set the fired flag so only Fire is only called once.
             m_Fired = true;
@@ -209,7 +260,7 @@ namespace Tanks.Complete
             explosionData.m_ExplosionForce = m_ExplosionForce;
             explosionData.m_ExplosionRadius = m_ExplosionRadius;
             explosionData.m_MaxDamage = m_MaxDamage;
-            
+
             // Increase the damage if extra damage PowerUp is active
             if (m_HasSpecialShell)
             {
@@ -217,7 +268,7 @@ namespace Tanks.Complete
                 // Reset the default values after increasing the damage of the fired shell
                 m_HasSpecialShell = false;
                 m_SpecialShellMultiplier = 1f;
-                
+
                 PowerUpDetector powerUpDetector = GetComponent<PowerUpDetector>();
                 if (powerUpDetector != null)
                     powerUpDetector.m_HasActivePowerUp = false;
@@ -245,7 +296,7 @@ namespace Tanks.Complete
         }
 
         /// <summary>
-        /// Return the estyimated position the projectile will have with the charging level (between 0 & 1)
+        /// Return the estimated position the projectile will have with the charging level (between 0 & 1)
         /// </summary>
         /// <param name="chargingLevel">The fire charging level between 0 - 1</param>
         /// <returns>The position at which the projectile will be (ignore obstacle)</returns>

@@ -270,7 +270,7 @@ namespace Tanks.Complete
                         // we go into fleeing mode instead of staying there as a static target
                         if (m_TimeSinceLastTargetMove > 2.0f)
                         {
-                            StartFleeing();
+                            //StartFleeing();
                         }
                     }
                 }
@@ -327,13 +327,37 @@ namespace Tanks.Complete
 
         private void StartFleeing()
         {
-            // To flee, we need to pick a point away from our current target
+            Vector3 toTarget = m_CurrentTarget.position - transform.position;
+
+            float targetDistance = toTarget.magnitude;
+
+            if (targetDistance < m_MaxShootingDistance)
+                                {
+         // This use the navmesh to check if there are any obstacle between us and the target. If this return false
+         // this mean there is no unobstructed path, so there *is* an obstacle, so we shouldn't start shooting yet
+         if (!NavMesh.Raycast(transform.position, m_CurrentTarget.position, out var hit, ~0))
+            {
+          // we stop moving as we can reach our target with our shot
+                    m_IsMoving = false;
+
+                      // if our cooldown is not 0 or below, we have to wait for it to be before shooting. If it is
+                   // below 0, we start charging
+              if (m_ShotCooldown <= 0.0f)
+                {
+                        m_Shooting.StartCharging();
+                        m_Shooting.StopCharging();
+                        }
+                       }
+                       }
+
+
+             // To flee, we need to pick a point away from our current target
             m_FleeingLastPosition = transform.position;
             m_SinceLastFleeingMove = 0.0f;
-            
+
             // Start by getting the vector *toward* our target...
-            var toTarget = (m_CurrentTarget.position - transform.position).normalized;
-            
+            // var toTarget = (m_CurrentTarget.position - transform.position).normalized;
+
             // then rotate that vector of a random angle between 90 and 180 degree, which will give us a random direction
             // in the opposite direction
             toTarget = Quaternion.AngleAxis(Random.Range(90.0f, 180.0f) * Mathf.Sign(Random.Range(-1.0f, 1.0f)),
@@ -351,7 +375,8 @@ namespace Tanks.Complete
 
                 m_IsMoving = true;
             }
-        }
+            }
+
 
         // Contrary to Update (which is called every new frame, so called a variable amount of time per second depending
         // if the game is rendering fast or not), FixedUpdate is called at a given interval define in the Physic Setting
